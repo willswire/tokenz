@@ -1,0 +1,60 @@
+version: 1
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+
+archives:
+  - format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+
+release:
+  github:
+    owner: willswire
+    name: tokenz
+  draft: true
+  prerelease: auto
+  make_latest: true
+
+brews:
+  - name: tokenz
+    commit_msg_template: |
+      {{ .ProjectName }} {{ .Tag }} (new formula)
+
+
+      This is the initial contribution of {{ .ProjectName }}
+    url_template: "https://github.com/willswire/{{ .ProjectName }}/archive/refs/tags/#{version}.tar.gz"
+    directory: Formula/t/
+    homepage: "https://github.com/willswire/{{ .ProjectName }}"
+    description: "Store tokens in Apple Keychain for easy access in Terminal"
+    license: "MIT"
+    repository:
+      owner: willswire
+      name: homebrew-core
+      branch: master
+      pull_request:
+        enabled: true
+        draft: true
+        base:
+          owner: Homebrew
+          name: homebrew-core
+          branch: master
