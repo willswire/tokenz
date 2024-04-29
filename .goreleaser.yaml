@@ -37,24 +37,11 @@ release:
 
 brews:
   - name: tokenz
-    commit_msg_template: |
-      {{ .ProjectName }} {{ .Tag }} (new formula)
-
-
-      This is the initial contribution of {{ .ProjectName }}
-    url_template: "https://github.com/willswire/{{ .ProjectName }}/archive/refs/tags/#{version}.tar.gz"
-    directory: Formula/t/
-    homepage: "https://github.com/willswire/{{ .ProjectName }}"
-    description: "Store tokens in Apple Keychain for easy access in Terminal"
     license: "MIT"
     repository:
       owner: willswire
-      name: homebrew-core
-      branch: master
-      pull_request:
-        enabled: true
-        draft: true
-        base:
-          owner: Homebrew
-          name: homebrew-core
-          branch: master
+      name: homebrew-tap
+      branch: main
+    commit_msg_template: "{{ .ProjectName }} {{ .Tag }}"
+    homepage: "https://github.com/willswire/{{ .ProjectName }}"
+    description: "Store tokens in Apple Keychain for easy access in Terminal"
