@@ -1,0 +1,40 @@
+version: 1
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+
+archives:
+  - format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_v{{ .Version }}_
+      {{- if eq .Os "darwin" }}macOS_
+      {{- else }}{{ title .Os }}_{{ end }}
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+
+brews:
+  - name: tokenz
+    license: "MIT"
+    repository:
+      owner: willswire
+      name: homebrew-tap
+      branch: main
+    commit_msg_template: "{{ .ProjectName }} {{ .Tag }}"
+    homepage: "https://github.com/willswire/{{ .ProjectName }}"
+    description: "Store tokens in Apple Keychain for easy access in Terminal"
