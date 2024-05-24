@@ -14,34 +14,27 @@ import (
 type model struct {
 	focusIndex int
 	inputs     []textinput.Model
-	focusedStyle, unfocusedStyle lipgloss.Style
-	focusedSubmitButton, unfocusedSubmitButton string
 }
 
 // Initialize the input model with two text inputs
 func inputModel() model {
-	focusedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
-	unfocusedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
-
 	m := model{
 		inputs: make([]textinput.Model, 2),
-		focusedStyle: focusedStyle,
-		unfocusedStyle: unfocusedStyle,
-		focusedSubmitButton: focusedStyle.Copy().Render("[ Submit ]"),
-		unfocusedSubmitButton: fmt.Sprintf("[ %s ]", unfocusedStyle.Render("Submit")),
 	}
+
+	defaultStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 
 	for i := range m.inputs {
 		t := textinput.New()
-		t.Cursor.Style = focusedStyle.Copy()
+		t.Cursor.Style = defaultStyle.Copy()
 		t.CharLimit = 32
 
 		switch i {
 		case 0:
 			t.Placeholder = "Description"
 			t.Focus()
-			t.PromptStyle = focusedStyle
-			t.TextStyle = focusedStyle
+			t.PromptStyle = defaultStyle
+			t.TextStyle = defaultStyle
 		case 1:
 			t.Placeholder = "Value"
 			t.EchoMode = textinput.EchoPassword
@@ -61,6 +54,8 @@ func (m model) Init() tea.Cmd {
 
 // Update the application state based on user input
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmds []tea.Cmd
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -72,12 +67,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, tea.Quit
 			}
 
-			return m, m.updateFocus()
+			cmd := m.updateFocus()
+			cmds = append(cmds, cmd)
 		}
 	}
 
 	cmd := m.updateInputs(msg)
-	return m, cmd
+	cmds = append(cmds, cmd)
+
+	return m, tea.Batch(cmds...)
 }
 
 // Handle navigation keys and focus changes
@@ -105,15 +103,19 @@ func handleNavigation(key string, m *model) bool {
 func (m *model) updateFocus() tea.Cmd {
 	cmds := make([]tea.Cmd, len(m.inputs))
 
+	focusedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
+	unfocusedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+
 	for i := 0; i < len(m.inputs); i++ {
 		if i == m.focusIndex {
+			m.inputs[i].Focus()
+			m.inputs[i].PromptStyle = focusedStyle
+			m.inputs[i].TextStyle = focusedStyle
 			cmds[i] = m.inputs[i].Focus()
-			m.inputs[i].PromptStyle = m.focusedStyle
-			m.inputs[i].TextStyle = m.focusedStyle
 		} else {
 			m.inputs[i].Blur()
-			m.inputs[i].PromptStyle = lipgloss.NewStyle()
-			m.inputs[i].TextStyle = lipgloss.NewStyle()
+			m.inputs[i].PromptStyle = unfocusedStyle
+			m.inputs[i].TextStyle = unfocusedStyle
 		}
 	}
 
@@ -142,9 +144,13 @@ func (m model) View() string {
 		}
 	}
 
-	button := m.unfocusedSubmitButton
+	// Apply focused/unfocused styles to the submit button
+	focusedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
+	unfocusedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+
+	button := unfocusedStyle.Render("[ Submit ]")
 	if m.focusIndex == len(m.inputs) {
-		button = m.focusedSubmitButton
+		button = focusedStyle.Render("[ Submit ]")
 	}
 	fmt.Fprintf(&b, "\n\n%s\n\n", button)
 
