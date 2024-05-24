@@ -23,10 +23,9 @@ archives:
 changelog:
   sort: asc
   filters:
-    exclude:
-      - "^docs:"
-      - "^test:"
-      - "^chore:"
+    include:
+      - "^feat:"
+      - "^fix:"
 
 brews:
   - name: tokenz
