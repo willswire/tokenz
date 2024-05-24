@@ -10,30 +10,30 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-var (
-	focusedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
-	blurredStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
-	cursorStyle  = focusedStyle.Copy()
-	noStyle      = lipgloss.NewStyle()
-
-	focusedButton = focusedStyle.Copy().Render("[ Submit ]")
-	blurredButton = fmt.Sprintf("[ %s ]", blurredStyle.Render("Submit"))
-)
-
+// Model representing the application state
 type model struct {
 	focusIndex int
 	inputs     []textinput.Model
+	focusedStyle, unfocusedStyle lipgloss.Style
+	focusedSubmitButton, unfocusedSubmitButton string
 }
 
-func initialModel() model {
+// Initialize the input model with two text inputs
+func inputModel() model {
+	focusedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
+	unfocusedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+
 	m := model{
 		inputs: make([]textinput.Model, 2),
+		focusedStyle: focusedStyle,
+		unfocusedStyle: unfocusedStyle,
+		focusedSubmitButton: focusedStyle.Copy().Render("[ Submit ]"),
+		unfocusedSubmitButton: fmt.Sprintf("[ %s ]", unfocusedStyle.Render("Submit")),
 	}
 
-	var t textinput.Model
 	for i := range m.inputs {
-		t = textinput.New()
-		t.Cursor.Style = cursorStyle
+		t := textinput.New()
+		t.Cursor.Style = focusedStyle.Copy()
 		t.CharLimit = 32
 
 		switch i {
@@ -54,10 +54,12 @@ func initialModel() model {
 	return m
 }
 
+// Initialize the application
 func (m model) Init() tea.Cmd {
 	return textinput.Blink
 }
 
+// Update the application state based on user input
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -65,59 +67,63 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c", "esc":
 			return m, tea.Quit
 
-		// Set focus to next input
 		case "tab", "shift+tab", "enter", "up", "down":
-			s := msg.String()
-
-			// Did the user press enter while the submit button was focused?
-			// If so, exit.
-			if s == "enter" && m.focusIndex == len(m.inputs) {
+			if handleNavigation(msg.String(), &m) {
 				return m, tea.Quit
 			}
 
-			// Cycle indexes
-			if s == "up" || s == "shift+tab" {
-				m.focusIndex--
-			} else {
-				m.focusIndex++
-			}
-
-			if m.focusIndex > len(m.inputs) {
-				m.focusIndex = 0
-			} else if m.focusIndex < 0 {
-				m.focusIndex = len(m.inputs)
-			}
-
-			cmds := make([]tea.Cmd, len(m.inputs))
-			for i := 0; i <= len(m.inputs)-1; i++ {
-				if i == m.focusIndex {
-					// Set focused state
-					cmds[i] = m.inputs[i].Focus()
-					m.inputs[i].PromptStyle = focusedStyle
-					m.inputs[i].TextStyle = focusedStyle
-					continue
-				}
-				// Remove focused state
-				m.inputs[i].Blur()
-				m.inputs[i].PromptStyle = noStyle
-				m.inputs[i].TextStyle = noStyle
-			}
-
-			return m, tea.Batch(cmds...)
+			return m, m.updateFocus()
 		}
 	}
 
-	// Handle character input and blinking
 	cmd := m.updateInputs(msg)
-
 	return m, cmd
 }
 
+// Handle navigation keys and focus changes
+func handleNavigation(key string, m *model) bool {
+	if key == "enter" && m.focusIndex == len(m.inputs) {
+		return true
+	}
+
+	if key == "up" || key == "shift+tab" {
+		m.focusIndex--
+	} else {
+		m.focusIndex++
+	}
+
+	if m.focusIndex > len(m.inputs) {
+		m.focusIndex = 0
+	} else if m.focusIndex < 0 {
+		m.focusIndex = len(m.inputs)
+	}
+
+	return false
+}
+
+// Update the focus of input fields
+func (m *model) updateFocus() tea.Cmd {
+	cmds := make([]tea.Cmd, len(m.inputs))
+
+	for i := 0; i < len(m.inputs); i++ {
+		if i == m.focusIndex {
+			cmds[i] = m.inputs[i].Focus()
+			m.inputs[i].PromptStyle = m.focusedStyle
+			m.inputs[i].TextStyle = m.focusedStyle
+		} else {
+			m.inputs[i].Blur()
+			m.inputs[i].PromptStyle = lipgloss.NewStyle()
+			m.inputs[i].TextStyle = lipgloss.NewStyle()
+		}
+	}
+
+	return tea.Batch(cmds...)
+}
+
+// Update input fields based on user input
 func (m *model) updateInputs(msg tea.Msg) tea.Cmd {
 	cmds := make([]tea.Cmd, len(m.inputs))
 
-	// Only text inputs with Focus() set will respond, so it's safe to simply
-	// update all of them here without any further logic.
 	for i := range m.inputs {
 		m.inputs[i], cmds[i] = m.inputs[i].Update(msg)
 	}
@@ -125,6 +131,7 @@ func (m *model) updateInputs(msg tea.Msg) tea.Cmd {
 	return tea.Batch(cmds...)
 }
 
+// Render the view
 func (m model) View() string {
 	var b strings.Builder
 
@@ -135,17 +142,18 @@ func (m model) View() string {
 		}
 	}
 
-	button := &blurredButton
+	button := m.unfocusedSubmitButton
 	if m.focusIndex == len(m.inputs) {
-		button = &focusedButton
+		button = m.focusedSubmitButton
 	}
-	fmt.Fprintf(&b, "\n\n%s\n\n", *button)
+	fmt.Fprintf(&b, "\n\n%s\n\n", button)
 
 	return b.String()
 }
 
+// Main function to run the application
 func main() {
-	if _, err := tea.NewProgram(initialModel()).Run(); err != nil {
+	if _, err := tea.NewProgram(inputModel()).Run(); err != nil {
 		fmt.Printf("could not start program: %s\n", err)
 		os.Exit(1)
 	}
