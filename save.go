@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
 	"os/exec"
 	"os/user"
 	"strings"
@@ -13,20 +12,21 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// Define styles
+// STYLES
+
 var (
 	focusedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 	blurredStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
 )
 
-// Model representing the application state
-type appModel struct {
+// MODEL
+
+type savePage struct {
 	tokenNameInput  textinput.Model
 	tokenValueInput textinput.Model
 }
 
-// Initialize the input model with two text inputs
-func newModel() appModel {
+func newSavePage() savePage {
 	tokenNameInput := textinput.New()
 	tokenNameInput.Placeholder = "Token Key"
 	tokenNameInput.CharLimit = 32
@@ -44,16 +44,25 @@ func newModel() appModel {
 	tokenValueInput.TextStyle = blurredStyle
 	tokenValueInput.Cursor.Style = blurredStyle
 
-	return appModel{tokenNameInput: tokenNameInput, tokenValueInput: tokenValueInput}
+	return savePage{tokenNameInput: tokenNameInput, tokenValueInput: tokenValueInput}
 }
 
-// Initialize the application
-func (m appModel) Init() tea.Cmd {
-	return textinput.Blink
+func (m savePage) Init() tea.Cmd { return textinput.Blink }
+
+// VIEW
+
+func (m savePage) View() string {
+	var b strings.Builder
+	b.WriteString(m.tokenNameInput.View())
+	b.WriteRune('\n')
+	b.WriteString(m.tokenValueInput.View())
+	b.WriteRune('\n')
+	return b.String()
 }
 
-// Update the application state based on user input
-func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+// UPDATE
+
+func (m savePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -70,8 +79,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-// Handle navigation keys and focus changes
-func handleNavigation(key string, m *appModel) bool {
+func handleNavigation(key string, m *savePage) bool {
 	if key == "enter" && m.tokenValueInput.Focused() {
 		return saveToken(m)
 	}
@@ -88,8 +96,7 @@ func handleNavigation(key string, m *appModel) bool {
 	return false
 }
 
-// Update styles based on focus
-func updateStyles(m *appModel) {
+func updateStyles(m *savePage) {
 	if m.tokenNameInput.Focused() {
 		m.tokenNameInput.PromptStyle = focusedStyle
 		m.tokenNameInput.TextStyle = focusedStyle
@@ -107,16 +114,16 @@ func updateStyles(m *appModel) {
 	}
 }
 
-// Update input fields based on user input
-func (m *appModel) updateInputs(msg tea.Msg) tea.Cmd {
+func (m *savePage) updateInputs(msg tea.Msg) tea.Cmd {
 	cmds := make([]tea.Cmd, 2)
 	m.tokenNameInput, cmds[0] = m.tokenNameInput.Update(msg)
 	m.tokenValueInput, cmds[1] = m.tokenValueInput.Update(msg)
 	return tea.Batch(cmds...)
 }
 
-// Save the token value to the keychain
-func saveToken(m *appModel) bool {
+// ACTIONS
+
+func saveToken(m *savePage) bool {
 	currentUser, err := user.Current()
 	if err != nil {
 		log.Fatalf(err.Error())
@@ -131,22 +138,4 @@ func saveToken(m *appModel) bool {
 	}
 	fmt.Printf("%s=%s\n", m.tokenNameInput.Value(), m.tokenValueInput.Value())
 	return true
-}
-
-// Render the view
-func (m appModel) View() string {
-	var b strings.Builder
-	b.WriteString(m.tokenNameInput.View())
-	b.WriteRune('\n')
-	b.WriteString(m.tokenValueInput.View())
-	b.WriteRune('\n')
-	return b.String()
-}
-
-// Main function to run the application
-func main() {
-	if _, err := tea.NewProgram(newModel()).Run(); err != nil {
-		fmt.Printf("could not start program: %s\n", err)
-		os.Exit(1)
-	}
 }
