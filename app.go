@@ -24,8 +24,7 @@ func main() {
 	case "save":
 		model = newSavePage()
 	case "load":
-		opts = []tea.ProgramOption{tea.WithoutRenderer()}
-		// model = load()
+		model = newLoadPage()
 	default:
 		model = newHelpPage()
 	}
