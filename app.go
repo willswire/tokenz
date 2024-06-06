@@ -23,8 +23,9 @@ func main() {
 	switch command {
 	case "save":
 		model = newSavePage()
-	case "load":
-		model = newLoadPage()
+	case "shellenv":
+		shellenv()
+		return
 	default:
 		model = newHelpPage()
 	}

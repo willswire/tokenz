@@ -15,8 +15,8 @@ func newHelpPage() helpPage {
 	helpText := "" +
 		"Usage: tokenz [command]\n" +
 		"\n" +
-		" load	Load environment variables for all tokens\n" +
-		" save	Record a new token into secure storage\n"
+		" shellenv	Load environment variables for all tokens\n" +
+		" save		Record a new token into secure storage\n"
 	return helpPage{text: helpText}
 }
 
