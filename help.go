@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -13,10 +12,11 @@ type helpPage struct{ text string }
 
 func newHelpPage() helpPage {
 	helpText := "" +
-		"Usage: tokenz [command]\n" +
+		"usage: tokenz <command>\n" +
 		"\n" +
-		" shellenv	Load environment variables for all tokens\n" +
-		" save		Record a new token into secure storage\n"
+		"   shellenv    Load environment variables for all tokens: $(tokenz shellenv)\n" +
+		"   save        Record a new token into secure storage\n" +
+		"   audit       Review tokens save in secure storage\n"
 	return helpPage{text: helpText}
 }
 
@@ -25,12 +25,7 @@ func (s helpPage) Init() tea.Cmd { return nil }
 // VIEW
 
 func (s helpPage) View() string {
-	textLen := len(s.text)
-	topAndBottomBar := strings.Repeat("*", textLen+4)
-	return fmt.Sprintf(
-		"%s\n%s\n%s\n\n",
-		topAndBottomBar, s.text, topAndBottomBar,
-	)
+	return fmt.Sprintf(s.text)
 }
 
 // UPDATE

@@ -23,6 +23,8 @@ func main() {
 	switch command {
 	case "save":
 		model = newSavePage()
+	case "audit":
+		model = newAuditPage()
 	case "shellenv":
 		shellenv()
 		return
